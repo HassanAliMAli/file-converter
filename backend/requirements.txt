@@ -1,0 +1,21 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+
+# Database ORM and Migrations
+SQLAlchemy[asyncio]
+psycopg2-binary
+asyncpg
+alembic
+greenlet
+
+# Configuration Management
+pydantic-settings
+
+# User Authentication
+fastapi-users[sqlalchemy]
+fastapi-users-db-sqlalchemy
+email-validator
+
+# Background Task Queue
+celery[redis] 
