@@ -5,6 +5,8 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuthStore } from './store';
@@ -20,6 +22,7 @@ function Layout() {
           <li><Link to="/login" className="hover:underline">Login</Link></li>
           <li><Link to="/register" className="hover:underline">Register</Link></li>
           <li><Link to="/dashboard" className="hover:underline">Dashboard</Link></li>
+          {/* Add link to forgot password? Maybe on login page */}
         </ul>
       </nav>
       <main className="flex-grow container mx-auto p-4">
@@ -27,6 +30,8 @@ function Layout() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           {/* Add other routes here */}
           <Route path="*" element={<NotFoundPage />} />

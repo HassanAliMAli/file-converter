@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from dotenv import load_dotenv
 import os
+import logging # Import logging
+from fastapi.middleware.cors import CORSMiddleware # Import CORS
 
 from app.core.security import fastapi_users, auth_backend
 from app.schemas import UserRead, UserCreate
@@ -14,6 +16,32 @@ app = FastAPI(
     description="API for the Universal File Converter web application.",
     version="0.1.0"
 )
+
+# Configure basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Configure CORS
+# TODO: Restrict origins in production
+origins = [
+    "http://localhost:5173", # Default Vite dev server port
+    "http://localhost:3000", # Common React dev server port
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Allow all methods
+    allow_headers=["*"], # Allow all headers
+)
+
+@app.get("/health", tags=["health"])
+async def health_check():
+    # TODO: Add checks for DB, Redis connectivity if needed
+    logger.info("Health check endpoint called.")
+    return {"status": "ok"}
 
 @app.get("/")
 async def root():
