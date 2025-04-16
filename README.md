@@ -29,7 +29,7 @@ A comprehensive, fast, secure, reliable, and user-friendly online platform for c
     *   PostgreSQL server running (e.g., locally on port 5432)
     *   Redis server running (e.g., locally on port 6379)
 
-2.  **Clone Repository:** (Assuming you have pushed it to GitHub/etc.)
+2.  **Clone Repository:** 
     ```bash
     git clone <your-repo-url>
     cd universal-file-converter # Or your project directory name
