@@ -1,5 +1,5 @@
 import { Routes, Route, Link } from 'react-router-dom'
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 // Placeholder Pages (will be moved to /pages directory later)
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';

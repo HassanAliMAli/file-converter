@@ -1,8 +1,12 @@
 import axios from 'axios';
 import { useAuthStore } from '../store'; // Assuming store setup
 
-// TODO: Get baseURL from environment variables (.env)
-const API_BASE_URL = 'http://localhost:8000'; // Default for local development
+// Get baseURL from environment variables (set in .env and accessed via Vite)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+if (!import.meta.env.VITE_API_BASE_URL) {
+  console.warn("VITE_API_BASE_URL environment variable not set. Defaulting to http://localhost:8000");
+}
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

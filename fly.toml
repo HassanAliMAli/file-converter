@@ -1,0 +1,66 @@
+# fly.toml app configuration file generated for file-conversion-backend
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "your-backend-app-name" # *** REPLACE with your unique Fly.io app name ***
+primary_region = "iad" # Example: Choose a region close to you or your users
+
+# Tells fly how to build the image
+[build]
+  dockerfile = "backend/Dockerfile" # Path relative to project root
+  # Optional: If build args are needed
+  # [build.args]
+  #   SOME_ARG = "value"
+
+# Defines the main web service
+[http_service]
+  internal_port = 8000 # Port your FastAPI app listens on inside the container
+  force_https = true
+  auto_stop_machines = true # Can be 'off' or 'true' - stops machines when idle
+  auto_start_machines = true # Starts machines on incoming requests
+  min_machines_running = 0 # Minimum number of machines to keep running (0 for scale-to-zero)
+  # Optional: Increase memory if needed
+  # [http_service.vm]
+  #   memory = "1gb"
+
+# Defines the health checks for the web service
+[[http_service.checks]]
+    interval = "10s"
+    timeout = "2s"
+    grace_period = "5s"
+    method = "GET"
+    path = "/health" # Assuming you have a /health endpoint in main.py
+    protocol = "http"
+    tls_skip_verify = false
+
+# Defines the public-facing ports and handlers
+[[services]]
+  protocol = "tcp"
+  internal_port = 8000 # Matches http_service internal_port
+  # Optional: Concurrency limits
+  # concurrency = { type = "connections", hard_limit = 25, soft_limit = 20 }
+
+  [[services.ports]]
+    port = 80 # Handles HTTP
+    handlers = ["http"]
+    force_https = true # Redirects HTTP to HTTPS
+
+  [[services.ports]]
+    port = 443 # Handles HTTPS
+    handlers = ["tls", "http"]
+
+  # Optional: Health checks specific to the TCP service (can often rely on http_service checks)
+  # [[services.tcp_checks]]
+  #   interval = "15s"
+  #   timeout = "2s"
+  #   grace_period = "1s"
+
+# Define the Celery worker process
+[processes]
+  web = "uvicorn main:app --host 0.0.0.0 --port 8000" # Command to run the web server (redundant with Docker CMD but explicit)
+  worker = "celery -A app.core.celery_app.celery_app worker --loglevel=info" # Command to run the Celery worker
+
+# Optional: Define a release command to run migrations before deploying new code
+# [deploy]
+#   release_command = "alembic upgrade head" 

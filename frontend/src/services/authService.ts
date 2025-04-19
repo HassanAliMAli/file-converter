@@ -42,14 +42,28 @@ export const authService = {
       });
       const { access_token } = response.data;
 
-      // TODO: Fetch user details after successful login (/users/me)
-      // For now, we simulate user data based on email
-      const simulatedUser = { id: 'unknown', email: credentials.username }; // Replace with actual user fetch
-      useAuthStore.getState().login(simulatedUser, access_token);
-      console.log("Login successful");
+      // Set token in store immediately so fetchCurrentUser can use it
+      useAuthStore.getState().setToken(access_token); 
+
+      // Fetch user details using the existing function
+      const user = await authService.fetchCurrentUser(); 
+
+      if (user) {
+        // The fetchCurrentUser function already updated the store, 
+        // but we log success here after confirming user was fetched.
+        console.log("Login and user fetch successful");
+      } else {
+        // This case might happen if /users/me fails immediately after login
+        // fetchCurrentUser already handles logout in case of error
+        console.error("Login succeeded but fetching user failed. User has been logged out.");
+        // Throw an error to indicate the overall login process failed
+        throw new Error("Login succeeded but could not retrieve user details.");
+      }
+
     } catch (error) {
       console.error('Login failed:', error);
-      // Re-throw or handle error display
+      // Ensure logout if any part of the process failed
+      useAuthStore.getState().logout();
       throw error;
     }
   },
@@ -73,20 +87,41 @@ export const authService = {
   },
 
   fetchCurrentUser: async (): Promise<User | null> => {
+    // Add check: No need to fetch if no token exists
+    const token = useAuthStore.getState().token;
+    if (!token) {
+      console.log("No token found, cannot fetch current user.");
+      // Ensure user is logged out if somehow the state is inconsistent
+      useAuthStore.getState().logout(); 
+      return null;
+    }
+    
     try {
         const response = await apiClient.get<User>('/users/me');
-        // Update store with fetched user data
         const user = response.data;
-        const token = useAuthStore.getState().token; // Get existing token
-        if (token) {
-             useAuthStore.getState().login(user, token);
-        }
+        // Update store with fetched user data AND the token we already have
+        useAuthStore.getState().setUserAndToken(user, token);
         return user;
     } catch (error) {
         console.error("Failed to fetch current user:", error);
         // If fetching fails (e.g., invalid token), ensure logout
         useAuthStore.getState().logout();
         return null;
+    }
+  },
+
+  resetPassword: async (token: string, newPassword: string): Promise<void> => {
+    try {
+      // The endpoint likely expects a payload like { token, password }
+      await apiClient.post('/auth/reset-password', { 
+          token: token, 
+          password: newPassword 
+      });
+      console.log("Password reset successful for token:", token);
+    } catch (error) {
+      console.error("Password reset failed:", error);
+      // Re-throw the error for the component to handle and display
+      throw error; 
     }
   },
 

@@ -1,46 +1,80 @@
 from fastapi import FastAPI
-from dotenv import load_dotenv
+# Remove dotenv import if load_dotenv is not used
+# from dotenv import load_dotenv
 import os
 import logging # Import logging
 from fastapi.middleware.cors import CORSMiddleware # Import CORS
+from contextlib import asynccontextmanager # For lifespan events
+from fastapi import status
+
+# --- Rate Limiting Imports ---
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from starlette.requests import Request
+# --- End Rate Limiting Imports ---
 
 from app.core.security import fastapi_users, auth_backend
-from app.schemas import UserRead, UserCreate
+# from app.schemas import UserRead, UserCreate, UserUpdate # Import UserRead, UserCreate, UserUpdate
+from app.schemas.user import UserRead, UserCreate, UserUpdate # Import UserRead, UserCreate, UserUpdate
 from app.routers import conversion # Import the conversion router
+from app.core.config import settings # Import settings
+from app.db.session import init_engine, dispose_engine # Import engine lifecycle functions
+
+# --- Rate Limiting Setup ---
+limiter = Limiter(key_func=get_remote_address, default_limits=["1000/hour", "100/minute"])
+# --- End Rate Limiting Setup ---
 
 # Load environment variables from .env file
-load_dotenv(dotenv_path='../.env') # Specify path relative to main.py
+# load_dotenv(dotenv_path='../.env') # Specify path relative to main.py
+# Recommend using Pydantic settings in app.core.config instead
+
+# --- App Lifecycle Setup ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Initializing database engine...")
+    init_engine() # Initialize the database engine
+    logger.info("Database engine initialized.")
+    yield
+    # Shutdown
+    logger.info("Disposing database engine...")
+    await dispose_engine() # Dispose the database engine
+    logger.info("Database engine disposed.")
+# --- End App Lifecycle Setup ---
 
 app = FastAPI(
     title="Universal File Converter API",
     description="API for the Universal File Converter web application.",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan # Use new lifespan context manager
 )
+
+# --- Add Rate Limiter State and Handler ---
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# --- End Rate Limiter State and Handler ---
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Configure CORS
-# TODO: Restrict origins in production
-origins = [
-    "http://localhost:5173", # Default Vite dev server port
-    "http://localhost:3000", # Common React dev server port
-    "http://127.0.0.1:5173",
-]
+# Use origins defined in app.core.config.settings
+# TODO: Restrict allow_methods and allow_headers further in production if needed
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.BACKEND_CORS_ORIGINS, # Use configured origins
     allow_credentials=True,
-    allow_methods=["*"], # Allow all methods
-    allow_headers=["*"], # Allow all headers
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], # More specific methods
+    allow_headers=["Content-Type", "Authorization"], # Common required headers
 )
 
-@app.get("/health", tags=["health"])
+@app.get("/health", tags=["Health"], status_code=status.HTTP_200_OK)
 async def health_check():
     # TODO: Add checks for DB, Redis connectivity if needed
-    logger.info("Health check endpoint called.")
+    # For now, just confirms the API is running
     return {"status": "ok"}
 
 @app.get("/")
@@ -77,6 +111,7 @@ app.include_router(
 
 # Include FastAPI Users user management routes
 app.include_router(
+    # TODO: Ensure UserUpdate schema in app/schemas/user.py includes all intended updatable fields.
     fastapi_users.get_users_router(UserRead, UserUpdate),
     prefix="/users",
     tags=["users"],

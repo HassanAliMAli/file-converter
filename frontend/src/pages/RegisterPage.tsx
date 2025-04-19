@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
+import ErrorMessage from '../components/ErrorMessage';
 
 interface RegisterFormInputs {
   email: string;
@@ -54,12 +55,8 @@ const RegisterPage: React.FC = () => {
   return (
     <div className="max-w-md mx-auto mt-10 p-8 bg-white dark:bg-gray-800 shadow-md rounded-lg">
       <h2 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Register</h2>
+      <ErrorMessage message={serverError} />
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        {serverError && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {serverError}
-          </div>
-        )}
         <div className="mb-4">
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
           <input
